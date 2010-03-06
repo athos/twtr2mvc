@@ -1,0 +1,55 @@
+(ns twtr2mvc.mixi
+  (use twtr2mvc.http twtr2mvc.html))
+
+(def *user-email* "***")
+(def *user-password* "***")
+
+(defn mixi-request [path & rest]
+  (apply http-request (str "http://mixi.jp" path ".pl")
+	 :encoding "EUC_JP"
+	 rest))
+
+(defn scrape-echoes [html]
+  (let [echoes (extract-html html "//table/tr/td[3]")
+	result (for [echo echoes]
+		 (let [[id date name message] (extract-html echo "div/text()")]
+		   [(str id) (str date) (str name) (str message)]))]
+    (when-not (empty? result)
+      result)))
+      
+(defn scrape-post-key [html]
+  (let [xpath "//form[@id='EchoPost']//input[2]/@value"
+	post-key (extract-html html xpath)]
+    (when-not (empty? post-key)
+      (.getStringValue post-key))))
+
+(defn login []
+  (let [options {"email" *user-email*,
+		 "password" *user-password*,
+		 "sticky" "on",
+		 "next_url" "/home.pl"}]
+    (mixi-request "/login" :method "POST" :options options)))
+
+(defn try-until-success [path scraper]
+  (loop [retry 5]
+    (if (= retry 0)
+      (throw (Exception. "exceeded retry upper bound"))
+      (let [[status headers body]
+	    (mixi-request path :reader (fn [in _] (parse-html in)))]
+	(if-let [result (scraper body)]
+	  result
+	  (do (login)
+	      (recur (dec retry))))))))
+
+(defn recent-echoes []
+  (try-until-success "/recent_echo" scrape-echoes))
+
+(defn post-key []
+  (try-until-success "/recent_echo" scrape-post-key))
+
+(defn post-echo [msg]
+  (let [post_key (post-key)
+	options {"body" msg,
+		 "post_key" post_key,
+		 "redirect" "recent_echo"}]
+    (mixi-request "/add_echo" :method "POST" :options options)))
