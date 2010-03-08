@@ -1,8 +1,8 @@
 (ns twtr2mvc.mixi
-  (use twtr2mvc.http twtr2mvc.html))
+  (use twtr2mvc.http twtr2mvc.html twtr2mvc.config))
 
-(def *user-email* "***")
-(def *user-password* "***")
+(def *user-email* (config "mixi.username"))
+(def *user-password* (config "mixi.password"))
 
 (defn mixi-request [path & rest]
   (apply http-request (str "http://mixi.jp" path ".pl")

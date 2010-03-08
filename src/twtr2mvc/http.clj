@@ -1,7 +1,7 @@
 (ns twtr2mvc.http
   (use [clojure.contrib.duck-streams :only (with-out-writer slurp*)]
        [clojure.contrib.def :only (defnk)])
-  (import [java.io InputStreamReader]
+  (import [java.io InputStreamReader OutputStreamWriter]
 	  [java.net URL URLEncoder CookieHandler CookieManager CookiePolicy]))
 
 (defn string-join [items & [delim]]
@@ -47,7 +47,8 @@
 	      (when (or (= method "POST") (= method "PUT"))
 		(let [body (or body (query-string opts encoding))]
 		  (.setDoOutput conn true)
-		  (with-out-writer (.getOutputStream conn)
+		  (with-out-writer
+		      (OutputStreamWriter. (.getOutputStream conn) encoding)
 		    (print body))))
 	      (with-open [in (InputStreamReader.
 			       (.getInputStream conn)

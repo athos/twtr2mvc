@@ -1,4 +1,5 @@
 *~
+*.conf
 pom-generated.xml
 Manifest.txt
 twtr2mvc.jar
