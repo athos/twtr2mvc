@@ -1,26 +1,15 @@
 (ns twtr2mvc.http
   (use [clojure.contrib.duck-streams :only (with-out-writer slurp*)]
-       [clojure.contrib.def :only (defnk)])
+       [clojure.contrib.def :only (defnk)]
+       [clojure.contrib.str-utils :only (str-join)])
   (import [java.io InputStreamReader OutputStreamWriter]
 	  [java.net URL URLEncoder CookieHandler CookieManager CookiePolicy]))
 
-(defn string-join [items & [delim]]
-  (let [delim (or delim \space)
-	sb (StringBuilder.)]
-    (if (empty? items)
-      ""
-      (loop [[item & items] items]
-	(.append sb item)
-	(if items
-	  (do (.append sb delim)
-	      (recur items))
-	  (str sb))))))
-
-(defn query-string [kv-map encoding]
-  (string-join
+(defnk query-string [kv-map encoding :encoder #(URLEncoder/encode %1 %2)]
+  (str-join \&
     (for [[key value] kv-map]
-      (str key \= (URLEncoder/encode value encoding))) 
-    \&))
+      (let [key (if (keyword? key) (name key) (str key))]
+	(str key \= (encoder (str value) encoding))))))
 
 (defn enable-cookies []
   (let [manager (CookieManager.)]
@@ -45,7 +34,9 @@
 	      (doseq [[header value] headers]
 		(.setRequestProperty conn (str header) (str value)))
 	      (when (or (= method "POST") (= method "PUT"))
-		(let [body (or body (query-string opts encoding))]
+		(let [body (or body
+			       (and (string? opts) opts)
+			       (query-string opts encoding))]
 		  (.setDoOutput conn true)
 		  (with-out-writer
 		      (OutputStreamWriter. (.getOutputStream conn) encoding)

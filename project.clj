@@ -2,6 +2,7 @@
  :description "Twitter Mixi-voice bridge"
  :dependencies [[org.clojure/clojure "1.1.0-alpha-SNAPSHOT"]
                 [org.clojure/clojure-contrib "1.0-SNAPSHOT"]
-                [org.clojars.rayne/clojure-twitter "1.0"]
+                [net.homeip.yusuke/twitter4j-core "2.1.0"]
                 [org.clojars.raek/tagsoup "1.2"]
-                [clojure-saxon "0.9.0-SNAPSHOT"]])
+                [clojure-saxon "0.9.0-SNAPSHOT"]]
+ :repositories [["central" "http://repo1.maven.org/maven2/"]])
