@@ -12,8 +12,11 @@
 (defn scrape-echoes [html]
   (let [echoes (extract-html html "//table/tr/td[3]")
 	result (for [echo echoes]
-		 (let [[id date name message] (extract-html echo "div/text()")]
-		   [(str id) (str date) (str name) (str message)]))]
+		 (let [[id time name message] (extract-html echo "div/text()")]
+		   [(Long/parseLong (str time))
+		    (str message)
+		    (str name)
+		    (str id)]))]
     (when-not (empty? result)
       result)))
       
@@ -41,8 +44,10 @@
 	  (do (login)
 	      (recur (dec retry))))))))
 
-(defn recent-echoes []
-  (try-until-success "/recent_echo" scrape-echoes))
+(defn recent-echoes [last-time]
+  (sort #(>= (first %1) (first %2))
+	(filter (fn [[time]] (or (not last-time) (> time last-time)))
+		(try-until-success "/recent_echo" scrape-echoes))))
 
 (defn post-key []
   (try-until-success "/recent_echo" scrape-post-key))
@@ -53,3 +58,6 @@
 		 "post_key" post_key,
 		 "redirect" "recent_echo"}]
     (mixi-request "/add_echo" :method "POST" :options options)))
+
+(defn last-time [echoes]
+  (if (empty? echoes) false (first (first echoes))))

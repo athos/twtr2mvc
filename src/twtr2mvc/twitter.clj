@@ -1,6 +1,6 @@
 (ns twtr2mvc.twitter
   (use twtr2mvc.config)
-  (import [twitter4j Twitter]
+  (import [twitter4j Twitter Paging]
 	  [twitter4j.http AccessToken]))
 
 (def *oauth-consumer-key* (config "twitter.consumer-key"))
@@ -18,5 +18,19 @@
 (defn update-status [msg]
   (.updateStatus twitter msg))
 
-(defn mentions []
-  (.getMentions twitter))
+(defn mentions
+  ([] (mentions nil))
+  ([since-id]
+   (let [ms (if since-id
+	      (.getMentions twitter (Paging. (long since-id)))
+	      (.getMentions twitter))]
+     (sort #(>= (first %1) (first %2))
+	   (for [m ms]
+	     (let [u (.getUser m)]
+	       [(.getId m) (.getText m) (.getScreenName u) (.getId u)]))))))
+
+(defn followers []
+  (-> (.getFriendsIDs twitter) (.getIDs) seq))
+
+(defn max-status-id [ms]
+  (if (empty? ms) false (first (first ms))))
