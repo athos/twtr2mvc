@@ -1,0 +1,11 @@
+(defconfig twitter
+  [username "twitter account"]
+  [consumer-key "eSkwHAXwJ5l0P7dcUDZdg"]
+  [consumer-secret "9Ze1QkpZfkJd7VPwDFubhkCPOuxzhNTnLNs3Jt0eP1Q"]
+  [access-token "twitter oauth access token"]
+  [access-token-secret "twitter oauth access token secret"])
+
+(defconfig mixi
+  [id "mixi user id"]
+  [email "mixi email address"]
+  [password "mixi password"])
