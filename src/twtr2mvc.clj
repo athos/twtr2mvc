@@ -1,6 +1,6 @@
 (ns twtr2mvc
   (:gen-class)
-  (use [twtr2mvc.config :only (config)]
+  (use [twtr2mvc.config :only (config set-config-file!)]
        [clojure.contrib.str-utils :only (re-sub)])
   (require [twtr2mvc.mixi :as mixi]
 	   [twtr2mvc.twitter :as twitter]
@@ -43,6 +43,8 @@
     (.start thread)))
 
 (defn -main [& args]
+  (when (> (count args) 0)
+    (set-config-file! (first args)))
   (log/info "starting ...")
   (kick-watcher! "twitter" forward-from-twitter
 		 #(twitter/max-status-id (twitter/mentions false)))

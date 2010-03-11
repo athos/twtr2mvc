@@ -14,6 +14,9 @@
 
 (def already-loaded? (ref false))
 
+(defn set-config-file! [filename]
+  (reset! *configuration-filename* filename))
+
 (defn config [key]
   (dosync
    (when-not @already-loaded?
