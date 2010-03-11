@@ -28,23 +28,24 @@
 	  (twitter/update-status (str user "@mixi " message)))
 	(mixi/last-time echoes)))))
 
-(defn kick-watcher! [proc seed]
+(defn kick-watcher! [name proc seed]
   (let [thread (Thread. (fn []
 			  (try
 			   (loop [since (proc (seed))]
 			     (Thread/sleep 60000)
-			     (log/info "watcher polling")
+			     (log/info (format "[%s] watcher polling" name))
 			     (recur (proc since)))
 			   (catch Exception e
-			     (log/error (str "watcher error: "
-					     (.getMessage e)))))
+			     (log/error (format "[%s] watcher error: %s"
+						name
+						(.getMessage e)))))
 			  (recur)))]
     (.start thread)))
 
 (defn -main [& args]
   (log/info "starting ...")
-  (kick-watcher! forward-from-twitter
+  (kick-watcher! "twitter" forward-from-twitter
 		 #(twitter/max-status-id (twitter/mentions false)))
-  (kick-watcher! forward-from-mixi
+  (kick-watcher! "mixi" forward-from-mixi
 		 #(mixi/last-time (mixi/recent-echoes false)))
   (while true (.suspend (Thread/currentThread))))
