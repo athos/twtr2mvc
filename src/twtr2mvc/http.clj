@@ -1,9 +1,45 @@
 (ns twtr2mvc.http
   (use [clojure.contrib.duck-streams :only (with-out-writer slurp*)]
        [clojure.contrib.def :only (defnk)]
-       [clojure.contrib.str-utils :only (str-join)])
-  (import [java.io InputStreamReader OutputStreamWriter]
-	  [java.net URL URLEncoder CookieHandler CookieManager CookiePolicy]))
+       [clojure.contrib.str-utils :only (str-join re-split)])
+  (import [java.util Date]
+	  [java.io InputStreamReader OutputStreamWriter]
+	  [java.net URL URLEncoder]))
+
+(defstruct cookie :key :val :path :due)
+
+(def *cookie-table* (ref {}))
+
+(defn parse-cookie-header [header]
+  (let [[kv path due] (re-split #"; " header)
+	[_ key val] (re-find #"^(.+?)=(.+)$" kv)
+	[_ path] (re-find #"^path=(.+)$" path)
+	[_ due] (re-find #"^expires=(.+)$" due)]
+    (struct cookie key val path (Date. due))))
+
+(defn serialize-cookies [cookies]
+  (str-join "; "
+    (for [cookie cookies]
+      (str (:key cookie) "=" (:val cookie)))))
+
+(defn put-cookie [host cookie]
+  (dosync
+   (let [cookies (@*cookie-table* host)]
+     (if cookies
+       (swap! cookies assoc (:key cookie) cookie)
+       (alter *cookie-table*
+	      assoc host (atom {(:key cookie) cookie})))))
+  nil)
+
+(defn get-cookies [host path]
+  (let [cookies (@*cookie-table* host)]
+    (when cookies
+      (let [now (Date.)
+	    ret (for [[key cookie] @cookies
+		      :when (and (.before now (:due cookie))
+				 (.startsWith path (:path cookie)))]
+		  cookie)]
+	(if (empty? ret) nil ret)))))
 
 (defnk query-string [kv-map encoding :encoder #(URLEncoder/encode %1 %2)]
   (str-join \&
@@ -11,28 +47,20 @@
       (let [key (if (keyword? key) (name key) (str key))]
 	(str key \= (encoder (str value) encoding))))))
 
-(defn enable-cookies []
-  (let [manager (CookieManager.)]
-    (.setCookiePolicy manager CookiePolicy/ACCEPT_ALL)
-    (CookieHandler/setDefault manager)))
-
-(def ensure-enabling-cookies
-  (let [already-enabled? (atom false)]
-    (fn []
-      (when-not @already-enabled?
-	(swap! already-enabled? (constantly true))
-	(enable-cookies)))))
-
 (defnk http-request [uri :method "GET" :headers {}
 		     :body nil :encoding "UTF-8"
 		     :reader (fn [in headers] (slurp* in))
 		     :options {}]
-  (ensure-enabling-cookies)
   (letfn [(request [uri opts]
-	    (let [conn (.openConnection (URL. uri))]
+	    (let [uri (URL. uri)
+		  host (.getHost uri)
+		  path (.getPath uri)
+		  conn (.openConnection uri)]
 	      (.setRequestMethod conn method)
 	      (doseq [[header value] headers]
 		(.setRequestProperty conn (str header) (str value)))
+	      (when-let [cookies (get-cookies host path)]
+		(.setRequestProperty conn "Cookie" (serialize-cookies cookies)))
 	      (when (or (= method "POST") (= method "PUT"))
 		(let [body (or body
 			       (and (string? opts) opts)
@@ -41,12 +69,14 @@
 		  (with-out-writer
 		      (OutputStreamWriter. (.getOutputStream conn) encoding)
 		    (print body))))
-	      (with-open [in (InputStreamReader.
-			       (.getInputStream conn)
-			       encoding)]
-		[(.getResponseCode conn)
-		 (.getHeaderFields conn)
-		 (reader in (.getHeaderFields conn))])))]
+	      (let [headers (.getHeaderFields conn)]
+		(when-let [cookies (.get headers "Set-Cookie")]
+		  (doseq [cookie cookies]
+		    (put-cookie host (parse-cookie-header cookie))))
+		(with-open [in (InputStreamReader.
+				(.getInputStream conn)
+				encoding)]
+		  [(.getResponseCode conn) headers (reader in headers)]))))]
       (let [[status _ :as result] (request uri options)]
 	(when-not (= status "200") 'error)
 	result)))
