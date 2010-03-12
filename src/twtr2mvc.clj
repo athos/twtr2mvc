@@ -13,7 +13,7 @@
       (let [follower? (apply hash-set (twitter/followers))
 	    rx (re-pattern (str "^@" (config "twitter.username") "\\s*"))]
 	(doseq [[id text user user-id] (reverse ms) :when (follower? user-id)]
-	  (log/info  "forward from Twitter:" text)
+	  (log/info  (format "forward from Twitter: %s" text))
 	  (mixi/post-echo (re-sub rx "" text)))
 	(twitter/max-status-id ms)))))
 
@@ -24,7 +24,7 @@
       (do
 	(doseq [[_ message user id] (reverse echoes)
 		:when (not (= id (config "mixi.id")))]
-	  (log/info "forward from Mixi:" message)
+	  (log/info (format "forward from Mixi: %s" message))
 	  (twitter/update-status (str user "@mixi " message)))
 	(mixi/last-time echoes)))))
 
