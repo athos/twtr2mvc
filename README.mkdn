@@ -1,0 +1,60 @@
+twtr2mvc: A Twitter Mixi-Voice bridge
+=====================================
+
+Twtr2mvc is a simple Twitter Mixi-Voice bridge inspired by
+chaton-twitter, a Chaton-Twitter bridge. Twtr2mvc forwards
+Mixi-Voice posts to a Twitter account, and forwards Twitter
+replies to Mixi-Voice.
+
+Prerequisites
+-------------
+
+Before you run twtr2mvc, you must have:
+* Leiningen (http://github.com/technomancy/leiningen)
+* Mixi account
+* Twitter account
+
+Also, you need to prepare an OAuth access token for the 
+twtr2mvc consumer key. Of cource, you can use your own
+consumer key, if you like.
+
+Building
+--------
+
+To build twtr2mvc, put the following:
+    $ cd twtr2mvc
+    $ lein uberjar
+
+Dependencies
+------------
+
+Twtr2mvc depends on:
+* Clojure 1.1.0
+* clojure-contrib 1.0
+* twitter4j-core 2.1.0
+* tagsoup 1.2
+* clojure-saxon 0.9.0
+
+These dependencies can be downloaded automatically using:
+    $ lein deps
+
+Usage
+-----
+
+Before you run twtr2mvc, rename the template for the 
+configuration file (twtr2.conf.template) to 'twtr2mvc.conf',
+and fill in the appropriate places.
+
+To run twtr2mvc, just do:
+    $ java -jar twtr2mvc-standalone.jar
+
+Note that twtr2mvc works only in the environment where
+the default character encoding is UTF-8. If you use other
+encoding, you need to specify '-Dfile.encoding=UTF-8'
+option as well.
+
+License
+-------
+
+Copyright (C) 2010 OHTA Shogo
+Distributed under the MIT License.
