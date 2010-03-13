@@ -12,9 +12,10 @@
       since-id
       (let [follower? (apply hash-set (twitter/followers))
 	    rx (re-pattern (str "^@" (config "twitter.username") "\\s*"))]
-	(doseq [[id text user user-id] (reverse ms) :when (follower? user-id)]
+	(doseq [[id text user user-id in-reply-to] (reverse ms)
+		:when (follower? user-id)]
 	  (log/info  (format "forward from Twitter: %s" text))
-	  (mixi/post-echo (re-sub rx "" text)))
+	  (mixi/feed-to-mixi (re-sub rx "" text) in-reply-to))
 	(twitter/max-status-id ms)))))
 
 (defn forward-from-mixi [last-time]

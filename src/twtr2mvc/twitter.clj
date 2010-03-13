@@ -18,6 +18,12 @@
 (defn update-status [msg]
   (.updateStatus twitter msg))
 
+(defn in-reply-to [status]
+  (let [reply-id (.getInReplyToStatusId status)]
+    (if (= reply-id -1)
+      nil
+      (-> twitter (.showStatus reply-id) (.getText)))))
+
 (defn mentions
   ([] (mentions nil))
   ([since-id]
@@ -27,7 +33,11 @@
      (sort #(>= (first %1) (first %2))
 	   (for [m ms]
 	     (let [u (.getUser m)]
-	       [(.getId m) (.getText m) (.getScreenName u) (.getId u)]))))))
+	       [(.getId m)
+		(.getText m)
+		(.getScreenName u)
+		(.getId u)
+		(in-reply-to m)]))))))
 
 (defn followers []
   (-> (.getFriendsIDs twitter) (.getIDs) seq))
