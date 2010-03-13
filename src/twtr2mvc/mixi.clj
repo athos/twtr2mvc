@@ -75,6 +75,6 @@
 
 (defn feed-to-mixi [msg in-reply-to]
   (if in-reply-to
-    (let [[id time] (re-find #"\(([0-9]+):([0-9]+)\)$" in-reply-to)]
+    (let [[_ id time] (re-find #"\(([0-9]+):([0-9]+)\)$" in-reply-to)]
       (post-echo msg id time))
     (post-echo msg)))
