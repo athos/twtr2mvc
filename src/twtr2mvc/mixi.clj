@@ -1,5 +1,6 @@
 (ns twtr2mvc.mixi
-  (use twtr2mvc.http twtr2mvc.html twtr2mvc.config))
+  (use twtr2mvc.http twtr2mvc.html twtr2mvc.config
+       [clojure.contrib.str-utils :only (re-sub)]))
 
 (def *user-email* (config "mixi.email"))
 (def *user-password* (config "mixi.password"))
@@ -9,12 +10,19 @@
 	 :encoding "EUC_JP"
 	 rest))
 
+(defn omit->> [parent]
+  (re-sub #"^&gt;&gt;" "" (str parent)))
+
 (defn scrape-echoes [html]
   (let [echoes (extract-html html "//table/tr/td[3]")
 	result (for [echo echoes]
-		 (let [[id time name message] (extract-html echo "div/text()")]
+		 (let [[id time name message] (extract-html echo "div/text()")
+		       parent (extract-html echo
+				"a[contains(@href,'view_echo.pl')]/text()")]
 		   [(Long/parseLong (str time))
-		    (str message)
+		    (if parent
+		      (format ">>%s %s" (omit->> parent) message)
+		      (str message))
 		    (str name)
 		    (str id)]))]
     (when-not (empty? result)
@@ -52,11 +60,14 @@
 (defn post-key []
   (try-until-success "/recent_echo" scrape-post-key))
 
-(defn post-echo [msg]
+(defn post-echo [msg & [parent-member-id parent-post-time :as parent]]
   (let [post_key (post-key)
-	options {"body" msg,
-		 "post_key" post_key,
-		 "redirect" "recent_echo"}]
+	options (merge (and parent
+			    {"parent_member_id" parent-member-id,
+			     "parent_post_time" parent-post-time})
+		       {"body" msg,
+			"post_key" post_key,
+			"redirect" "recent_echo"})]
     (mixi-request "/add_echo" :method "POST" :options options)))
 
 (defn last-time [echoes]

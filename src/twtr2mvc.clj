@@ -22,10 +22,10 @@
     (if (empty? echoes)
       last-time
       (do
-	(doseq [[_ message user id] (reverse echoes)
+	(doseq [[time message user id] (reverse echoes)
 		:when (not (= id (config "mixi.id")))]
 	  (log/info (format "forward from Mixi: %s" message))
-	  (twitter/update-status (str user "@mixi " message)))
+	  (twitter/feed-to-twitter user id time message))
 	(mixi/last-time echoes)))))
 
 (defn kick-watcher! [name proc seed]

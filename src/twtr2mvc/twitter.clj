@@ -34,3 +34,11 @@
 
 (defn max-status-id [ms]
   (if (empty? ms) false (first (first ms))))
+
+(defn feed-to-twitter [name id time msg]
+  (let [content (format "%s: %s" name msg)
+	id:time (format "(%s:%s)" id time)]
+    (update-status
+     (if (> (+ (count content) (count id:time)) 139)
+       (format "%s\u2026 %s" (subs content 0 (- 138 (count id:time))) id:time)
+       (format "%s %s" content id:time)))))
